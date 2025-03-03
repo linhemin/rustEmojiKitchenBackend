@@ -1,0 +1,36 @@
+name: Build Linux x86_64
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # 检出代码
+      - uses: actions/checkout@v3
+
+      # 设置 Rust 环境（使用稳定版）
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      # 添加编译目标（如果默认没有安装 x86_64-unknown-linux-gnu）
+      - name: Add target
+        run: rustup target add x86_64-unknown-linux-gnu
+
+      # 编译项目，生成 release 版本，指定目标平台为 Linux x86_64
+      - name: Build release
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      # 上传编译产物（请将 “your_binary_name” 替换为你的项目编译生成的二进制文件名）
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-amd64-binary
+          path: target/x86_64-unknown-linux-gnu/release/emoji
