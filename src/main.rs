@@ -100,14 +100,11 @@ async fn emoji_handler(
         }
         let emoji1 = parts[0].trim();
         let emoji2 = parts[1].trim();
-        // 加载或者更新 metadata
-        if let Err(err) = load_or_update_metadata(state.clone()).await {
-            return HttpResponse::Ok().body(err);
-        }
+        // 直接使用已加载的 metadata，不重复载入喵～
         let metadata_lock = state.metadata.lock().unwrap();
         if let Some(ref json_data) = *metadata_lock {
             if let Some(url) = get_combined_emoji_url(json_data, emoji1, emoji2) {
-                return HttpResponse::Ok().body(format!("{}", url));
+                return HttpResponse::Ok().body(url);
             } else {
                 return HttpResponse::Ok().body("未找到相关图片喵～".to_string());
             }
@@ -119,23 +116,27 @@ async fn emoji_handler(
 }
 
 // /update 接口，更新 metadata 文件
-async fn update_handler(state: web::Data<AppState>) -> impl Responder {
-    match update_metadata(state.clone()).await {
-        Ok(msg) => HttpResponse::Ok().body(msg),
-        Err(err) => HttpResponse::Ok().body(format!("更新 metadata.json 失败喵：{}", err)),
-    }
-}
+// async fn update_handler(state: web::Data<AppState>) -> impl Responder {
+//     match update_metadata(state.clone()).await {
+//         Ok(msg) => HttpResponse::Ok().body(msg),
+//         Err(err) => HttpResponse::Ok().body(format!("更新 metadata.json 失败喵：{}", err)),
+//     }
+// }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let state = web::Data::new(AppState {
         metadata: Mutex::new(None),
     });
+    // 在启动服务器前，仅加载一次 metadata 喵～
+    if let Err(e) = load_or_update_metadata(state.clone()).await {
+        eprintln!("初始化 metadata 失败喵：{}", e);
+    }
     HttpServer::new(move || {
         App::new()
             .app_data(state.clone())
             .route("/emoji", web::get().to(emoji_handler))
-            .route("/update", web::get().to(update_handler))
+            // .route("/update", web::get().to(update_handler))
     })
     .bind("0.0.0.0:21387")?
     .run()
