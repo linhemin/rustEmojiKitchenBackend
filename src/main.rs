@@ -137,7 +137,7 @@ async fn main() -> std::io::Result<()> {
             .route("/emoji", web::get().to(emoji_handler))
             .route("/update", web::get().to(update_handler))
     })
-    .bind("127.0.0.1:8080")?
+    .bind("0.0.0.0:21387")?
     .run()
     .await
 }
